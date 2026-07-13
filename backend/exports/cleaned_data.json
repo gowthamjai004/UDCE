@@ -1,0 +1,30 @@
+[
+    {
+        "emp_id": 101,
+        "name": "JOHN",
+        "department": "IT",
+        "salary": 50000,
+        "city": "NEW YORK"
+    },
+    {
+        "emp_id": 103,
+        "name": "JOHN",
+        "department": "IT",
+        "salary": 50000,
+        "city": "NEW YORK"
+    },
+    {
+        "emp_id": 104,
+        "name": "",
+        "department": "FINANCE",
+        "salary": 70000,
+        "city": "BOSTON"
+    },
+    {
+        "emp_id": 105,
+        "name": "DAVID",
+        "department": "NONE",
+        "salary": 60000,
+        "city": "DALLAS"
+    }
+]
