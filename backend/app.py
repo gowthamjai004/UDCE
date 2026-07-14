@@ -1,4 +1,5 @@
 import copy
+
 from typing import Optional
 
 from fastapi import FastAPI
@@ -12,6 +13,8 @@ from cleaning.registry import OperationRegistry
 # Import Export Router
 from api.export import router as export_router
 
+from recovery.manager import RecoveryManager
+from api.recovery import router as recovery_router
 # -------------------------------------------------
 # FastAPI App
 # -------------------------------------------------
@@ -28,7 +31,7 @@ app.add_middleware(
 
 # Register Export Router
 app.include_router(export_router)
-
+app.include_router(recovery_router)
 # -------------------------------------------------
 # Initialize Classes
 # -------------------------------------------------
@@ -45,6 +48,13 @@ mongo.connect()
 connection_manager.set_database(mongo)
 engine = CleaningEngine()
 registry = OperationRegistry()
+
+recovery = RecoveryManager()
+engine = CleaningEngine()
+
+registry = OperationRegistry()
+
+
 
 # -------------------------------------------------
 # Request Model
@@ -228,13 +238,27 @@ def clean(request: CleanRequest):
 
     if request.save_output:
 
+    # ----------------------------
+    # Overwrite Existing Collection
+    # ----------------------------
+
         if request.save_mode == "overwrite":
+
+            recovery.create_backup(
+            request.database,
+            request.collection,
+            data
+            )
 
             db.save_collection(
             request.database,
             request.collection,
             cleaned_data
-            )
+    )
+
+    # ----------------------------
+    # Save as New Collection
+    # ----------------------------
 
     else:
 
@@ -242,16 +266,20 @@ def clean(request: CleanRequest):
 
         if output_collection is None:
 
-            output_collection = request.collection + "_cleaned"
+            output_collection = (
+                request.collection + "_cleaned"
+            )
 
         db.save_collection(
             request.database,
             output_collection,
             cleaned_data
         )
+        
 
     return {
         "status": "success",
         "cleaned_data": copy.deepcopy(cleaned_data),
         "report": report
     }
+ 

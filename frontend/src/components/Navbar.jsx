@@ -1,41 +1,43 @@
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Box,
-  Chip
-} from "@mui/material";
-
-import StorageIcon from "@mui/icons-material/Storage";
+import { AppBar, Toolbar, Typography, Button } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 function Navbar() {
 
+  const navigate = useNavigate();
+
   return (
 
-    <AppBar
-      position="fixed"
-      sx={{
-        zIndex: 1300
-      }}
-    >
+    <AppBar position="static">
 
       <Toolbar>
-
-        <StorageIcon sx={{ mr: 2 }} />
 
         <Typography
           variant="h6"
           sx={{ flexGrow: 1 }}
         >
-
-          UDCE - Universal Data Cleaning Engine
-
+          Universal Data Cleaning Engine
         </Typography>
 
-        <Chip
-          label="MongoDB Connected"
-          color="success"
-        />
+        <Button
+          color="inherit"
+          onClick={() => navigate("/dashboard")}
+        >
+          Dashboard
+        </Button>
+
+        <Button
+          color="inherit"
+          onClick={() => navigate("/recovery")}
+        >
+          Recovery Center
+        </Button>
+
+        <Button
+          color="inherit"
+          onClick={() => navigate("/")}
+        >
+          Disconnect
+        </Button>
 
       </Toolbar>
 

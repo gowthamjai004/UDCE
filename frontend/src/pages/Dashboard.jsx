@@ -9,6 +9,8 @@ import {
   Grid,
   Divider,
   Button,
+    Snackbar,
+  Alert,
 } from "@mui/material";
 
 import DatabaseSelector from "../components/DatabaseSelector";
@@ -20,6 +22,8 @@ import Report from "../components/Report";
 import ActionButtons from "../components/ActionButtons";
 import DashboardCards from "../components/DashboardCards";
 import SaveModeSelector from "../components/SaveModeSelector";
+import Navbar from "../components/Navbar";
+import StatisticsCards from "../components/StatisticsCards";
 
 import {
   getDatabases,
@@ -38,6 +42,12 @@ function Dashboard() {
   // -----------------------------
   // State Variables
   // -----------------------------
+
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+
+const [snackbarMessage, setSnackbarMessage] = useState("");
+
+const [snackbarSeverity, setSnackbarSeverity] = useState("success");
 
   const [databases, setDatabases] = useState([]);
   const [collections, setCollections] = useState([]);
@@ -238,7 +248,10 @@ const handleCollectionChange = (event) => {
 
     if (!database || !collection) {
 
-      alert("Please select Database and Collection");
+      setSnackbarMessage("Please select Database and Collection");
+setSnackbarSeverity("warning");
+setSnackbarOpen(true);
+return;
 
       return;
 
@@ -345,7 +358,9 @@ const handleCollectionChange = (event) => {
 
       setReport(result.report);
 
-      alert("Cleaning completed successfully.");
+      setSnackbarMessage("Cleaning completed successfully.");
+setSnackbarSeverity("success");
+setSnackbarOpen(true);
 
     }
 
@@ -353,7 +368,9 @@ const handleCollectionChange = (event) => {
 
       console.error(error);
 
-      alert("Cleaning failed.");
+      setSnackbarMessage("Cleaning failed.");
+setSnackbarSeverity("error");
+setSnackbarOpen(true);
 
     }
 
@@ -509,6 +526,10 @@ const operationCount = operations.length;
 
   return (
 
+      <>
+
+    <Navbar />
+
     <Box sx={{ p: 3 }}>
 
       <Paper
@@ -558,6 +579,13 @@ const operationCount = operations.length;
 />
 
         <Divider sx={{ mb: 3 }} />
+
+        <StatisticsCards
+  databases={databases.length}
+  collections={collections.length}
+  records={rows.length}
+  operations={operations.length}
+/>
 
         <Grid
           container
@@ -626,9 +654,29 @@ const operationCount = operations.length;
 
         <Report report={report} />
 
-      </Paper>
+    </Paper>
 
+<Snackbar
+  open={snackbarOpen}
+  autoHideDuration={3000}
+  onClose={() => setSnackbarOpen(false)}
+  anchorOrigin={{
+    vertical: "bottom",
+    horizontal: "right",
+  }}
+>
+  <Alert
+    severity={snackbarSeverity}
+    onClose={() => setSnackbarOpen(false)}
+    variant="filled"
+  >
+    {snackbarMessage}
+  </Alert>
+</Snackbar>
     </Box>
+
+  </>
+    
 
   );
 

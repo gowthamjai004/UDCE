@@ -104,6 +104,18 @@ export const exportExcel = async (data) => {
 
 };
 
+// ---------------- Recovery ----------------
+
+export const getBackups = async () => {
+
+  const response = await API.get(
+    "/recovery/backups"
+  );
+
+  return response.data;
+
+};
+
 // ---------------- Connect Database ----------------
 
 export const connectDatabase = async (connection) => {
@@ -111,6 +123,18 @@ export const connectDatabase = async (connection) => {
   const response = await API.post(
     "/connect",
     connection
+  );
+
+  return response.data;
+
+};
+
+// ---------------- Restore Backup ----------------
+
+export const restoreBackup = async (backupId) => {
+
+  const response = await API.post(
+    `/recovery/restore/${backupId}`
   );
 
   return response.data;
