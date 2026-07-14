@@ -140,3 +140,27 @@ export const restoreBackup = async (backupId) => {
   return response.data;
 
 };
+
+// ---------------- Delete Backup ----------------
+
+export const deleteBackup = async (backupId) => {
+
+  const response = await API.delete(
+    `/recovery/delete/${backupId}`
+  );
+
+  return response.data;
+
+};
+
+// ---------------- Current Database ----------------
+
+export const getCurrentDatabase = async () => {
+
+  const response = await API.get(
+    "/current_database"
+  );
+
+  return response.data.database;
+
+};

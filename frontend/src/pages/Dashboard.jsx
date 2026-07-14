@@ -1,32 +1,27 @@
-import { useNavigate } from "react-router-dom";
-
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   Box,
   Paper,
   Typography,
-  Grid,
   Divider,
-  Button,
-    Snackbar,
+  Snackbar,
   Alert,
 } from "@mui/material";
 
-import DatabaseSelector from "../components/DatabaseSelector";
+import Navbar from "../components/Navbar";
+import DashboardCards from "../components/DashboardCards";
 import CollectionSelector from "../components/CollectionSelector";
 import OperationSelector from "../components/OperationSelector";
 import DuplicateColumnSelector from "../components/DuplicateColumnSelector";
+import SaveModeSelector from "../components/SaveModeSelector";
+import ActionButtons from "../components/ActionButtons";
 import DataTable from "../components/DataTable";
 import Report from "../components/Report";
-import ActionButtons from "../components/ActionButtons";
-import DashboardCards from "../components/DashboardCards";
-import SaveModeSelector from "../components/SaveModeSelector";
-import Navbar from "../components/Navbar";
-import StatisticsCards from "../components/StatisticsCards";
 
 import {
-  getDatabases,
+  getCurrentDatabase,
   getCollections,
   getOperations,
   getDocuments,
@@ -39,48 +34,43 @@ import {
 
 function Dashboard() {
 
-  // -----------------------------
-  // State Variables
-  // -----------------------------
+  const navigate = useNavigate();
 
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [currentDatabase, setCurrentDatabase] = useState("");
 
-const [snackbarMessage, setSnackbarMessage] = useState("");
-
-const [snackbarSeverity, setSnackbarSeverity] = useState("success");
-
-  const [databases, setDatabases] = useState([]);
   const [collections, setCollections] = useState([]);
-  const [operations, setOperations] = useState([]);
 
-  const [database, setDatabase] = useState("");
   const [collection, setCollection] = useState("");
 
-  const [rows, setRows] = useState([]);
+  const [operations, setOperations] = useState([]);
+
+  const [selectedOperations, setSelectedOperations] = useState([]);
 
   const [columns, setColumns] = useState([]);
 
   const [selectedColumns, setSelectedColumns] = useState([]);
 
-  const [selectedOperations, setSelectedOperations] = useState([]);
+  const [rows, setRows] = useState([]);
 
   const [report, setReport] = useState(null);
 
-  const navigate = useNavigate();
-
   const [saveMode, setSaveMode] = useState("new");
 
-const [outputCollection, setOutputCollection] = useState("");
+  const [outputCollection, setOutputCollection] = useState("");
 
-  // -----------------------------
-  // Load Initial Data
-  // -----------------------------
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+
+  // -----------------------------------------------------
+// Load Initial Data
+// -----------------------------------------------------
 
 useEffect(() => {
 
-  const connection = localStorage.getItem(
-    "udce_connection"
-  );
+  const connection = localStorage.getItem("udce_connection");
 
   if (!connection) {
 
@@ -90,356 +80,369 @@ useEffect(() => {
 
   }
 
-  loadDatabases();
-
-  loadOperations();
+  loadDashboard();
 
 }, []);
 
-  // -----------------------------
-  // Load Databases
-  // -----------------------------
 
-  const loadDatabases = async () => {
+// -----------------------------------------------------
+// Load Dashboard
+// -----------------------------------------------------
 
-    try {
+const loadDashboard = async () => {
 
-      const data = await getDatabases();
+  try {
 
-      setDatabases(data);
+    const db = await getCurrentDatabase();
 
-    }
+    setCurrentDatabase(db);
 
-    catch (error) {
+    const collectionsData = await getCollections(db);
 
-      console.log(error);
+    setCollections(collectionsData);
 
-    }
+    const operationsData = await getOperations();
 
-  };
+    setOperations(operationsData);
 
-  // -----------------------------
-  // Load Operations
-  // -----------------------------
+  }
 
-  const loadOperations = async () => {
+  catch (error) {
 
-    try {
+    console.error(error);
 
-      const data = await getOperations();
+    showSnackbar(
+      "Unable to load dashboard.",
+      "error"
+    );
 
-      setOperations(data);
+  }
 
-    }
+};
 
-    catch (error) {
 
-      console.log(error);
+// -----------------------------------------------------
+// Snackbar Helper
+// -----------------------------------------------------
 
-    }
+const showSnackbar = (
 
-  };
+  message,
 
-  // -----------------------------
-  // Database Changed
-  // -----------------------------
+  severity = "success"
 
-  const handleDatabaseChange = async (event) => {
+) => {
 
-    const db = event.target.value;
+  setSnackbarMessage(message);
 
-    setDatabase(db);
+  setSnackbarSeverity(severity);
 
-    setCollection("");
+  setSnackbarOpen(true);
 
-    setRows([]);
+};
 
-    setColumns([]);
 
-    const cols = await getCollections(db);
-
-    setCollections(cols);
-
-  };
-
-  // -----------------------------
-  // Collection Changed
-  // -----------------------------
+// -----------------------------------------------------
+// Collection Changed
+// -----------------------------------------------------
 
 const handleCollectionChange = (event) => {
 
-  setCollection(event.target.value);
+  const value = event.target.value;
+
+  setCollection(value);
 
   setOutputCollection(
-    event.target.value + "_cleaned"
+    value + "_cleaned"
   );
 
 };
 
-  // -----------------------------
-  // Operation Selection
-  // -----------------------------
 
-  const handleOperation = (operation) => {
+// -----------------------------------------------------
+// Operation Selection
+// -----------------------------------------------------
 
-    if (selectedOperations.includes(operation)) {
+const handleOperation = (operation) => {
 
-      setSelectedOperations(
+  if (selectedOperations.includes(operation)) {
 
-        selectedOperations.filter(
+    setSelectedOperations(
 
-          op => op !== operation
+      selectedOperations.filter(
 
-        )
+        op => op !== operation
 
-      );
+      )
 
-    }
-
-    else {
-
-      setSelectedOperations(
-
-        [...selectedOperations, operation]
-
-      );
-
-    }
-
-  };
-
-  // -----------------------------
-  // Duplicate Column Selection
-  // -----------------------------
-
-  const handleColumnSelection = (column) => {
-
-    if (selectedColumns.includes(column)) {
-
-      setSelectedColumns(
-
-        selectedColumns.filter(
-
-          c => c !== column
-
-        )
-
-      );
-
-    }
-
-    else {
-
-      setSelectedColumns(
-
-        [...selectedColumns, column]
-
-      );
-
-    }
-
-  };
-
-  // -----------------------------
-  // Preview Data
-  // -----------------------------
-
-  const previewData = async () => {
-
-    if (!database || !collection) {
-
-      setSnackbarMessage("Please select Database and Collection");
-setSnackbarSeverity("warning");
-setSnackbarOpen(true);
-return;
-
-      return;
-
-    }
-
-    try {
-
-      const documents = await getDocuments(
-        database,
-        collection
-      );
-
-      setRows(documents);
-
-      const cols = await getColumns(
-        database,
-        collection
-      );
-
-      setColumns(cols);
-
-      setSelectedColumns(cols);
-
-    }
-
-    catch (error) {
-
-      console.log(error);
-
-      alert("Unable to load documents.");
-
-    }
-
-  };
-
-    // -----------------------------
-  // Run Cleaning
-  // -----------------------------
-
-  const runCleaning = async () => {
-
-    if (!database || !collection) {
-
-      alert("Please select Database and Collection");
-
-      return;
-
-    }
-
-    if (selectedOperations.length === 0) {
-
-      alert("Please select at least one cleaning operation");
-
-      return;
-
-    }
-      if (saveMode === "overwrite") {
-
-    const confirmed = window.confirm(
-      `This will permanently replace all data in "${collection}".\n\nDo you want to continue?`
     );
-
-    if (!confirmed) {
-
-      return;
-
-    }
 
   }
 
+  else {
 
-    const payload = {
+    setSelectedOperations(
 
-  database,
+      [...selectedOperations, operation]
 
-  collection,
+    );
 
-  operations: selectedOperations,
-
-  duplicate_columns: selectedColumns,
-
-  sort_column: "salary",
-
-  ascending: true,
-
-  save_mode: saveMode,
-
-  save_output: saveMode !== "download",
-
-  output_collection:
-    saveMode === "overwrite"
-      ? collection
-      : outputCollection
+  }
 
 };
 
-    try {
 
-        console.log(payload);
+// -----------------------------------------------------
+// Duplicate Column Selection
+// -----------------------------------------------------
 
-      const result = await cleanData(payload);
+const handleColumnSelection = (column) => {
 
-      setRows(result.cleaned_data);
+  if (selectedColumns.includes(column)) {
 
-      setReport(result.report);
+    setSelectedColumns(
 
-      setSnackbarMessage("Cleaning completed successfully.");
-setSnackbarSeverity("success");
-setSnackbarOpen(true);
+      selectedColumns.filter(
 
-    }
+        c => c !== column
 
-    catch (error) {
+      )
 
-      console.error(error);
+    );
 
-      setSnackbarMessage("Cleaning failed.");
-setSnackbarSeverity("error");
-setSnackbarOpen(true);
+  }
 
-    }
+  else {
+
+    setSelectedColumns(
+
+      [...selectedColumns, column]
+
+    );
+
+  }
+
+};
+
+
+// -----------------------------------------------------
+// Preview Data
+// -----------------------------------------------------
+
+const previewData = async () => {
+
+  if (!collection) {
+
+    showSnackbar(
+
+      "Please select a collection.",
+
+      "warning"
+
+    );
+
+    return;
+
+  }
+
+  try {
+
+    const documents = await getDocuments(
+
+      currentDatabase,
+
+      collection
+
+    );
+
+    setRows(documents);
+
+    const cols = await getColumns(
+
+      currentDatabase,
+
+      collection
+
+    );
+
+    setColumns(cols);
+
+    setSelectedColumns(cols);
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    showSnackbar(
+
+      "Unable to load data.",
+
+      "error"
+
+    );
+
+  }
+
+};
+
+
+// -----------------------------------------------------
+// Clean Data
+// -----------------------------------------------------
+
+const runCleaning = async () => {
+
+  if (!collection) {
+
+    showSnackbar(
+
+      "Please select a collection.",
+
+      "warning"
+
+    );
+
+    return;
+
+  }
+
+  if (selectedOperations.length === 0) {
+
+    showSnackbar(
+
+      "Select at least one operation.",
+
+      "warning"
+
+    );
+
+    return;
+
+  }
+
+  if (saveMode === "overwrite") {
+
+    const ok = window.confirm(
+
+      `Overwrite "${collection}" ?`
+
+    );
+
+    if (!ok) return;
+
+  }
+
+  const payload = {
+
+    database: currentDatabase,
+
+    collection,
+
+    operations: selectedOperations,
+
+    duplicate_columns: selectedColumns,
+
+    sort_column: "salary",
+
+    ascending: true,
+
+    save_mode: saveMode,
+
+    save_output: saveMode !== "download",
+
+    output_collection:
+
+      saveMode === "overwrite"
+
+        ? collection
+
+        : outputCollection,
 
   };
 
+  try {
 
-  const logout = () => {
+    const result = await cleanData(
 
-  localStorage.removeItem("udce_connection");
+      payload
 
-  navigate("/");
+    );
+
+    setRows(result.cleaned_data);
+
+    setReport(result.report);
+
+    showSnackbar(
+
+      "Cleaning completed successfully."
+
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    showSnackbar(
+
+      "Cleaning failed.",
+
+      "error"
+
+    );
+
+  }
 
 };
-
-
-  // -----------------------------
+// -----------------------------------------------------
 // Export JSON
-// -----------------------------
+// -----------------------------------------------------
 
 const handleExportJSON = async () => {
 
-    if (rows.length === 0) {
+  if (rows.length === 0) {
+    showSnackbar("No data available.", "warning");
+    return;
+  }
 
-        alert("No data available.");
+  try {
 
-        return;
+    const blob = await exportJSON(rows);
 
-    }
+    const url = window.URL.createObjectURL(blob);
 
-    try {
+    const link = document.createElement("a");
 
-        const blob = await exportJSON(rows);
+    link.href = url;
 
-        const url = window.URL.createObjectURL(blob);
+    link.download = "cleaned_data.json";
 
-        const link = document.createElement("a");
+    link.click();
 
-        link.href = url;
+    window.URL.revokeObjectURL(url);
 
-        link.download = "cleaned_data.json";
+  }
 
-        document.body.appendChild(link);
+  catch {
 
-        link.click();
+    showSnackbar("JSON Export Failed.", "error");
 
-        link.remove();
-
-        window.URL.revokeObjectURL(url);
-
-    }
-
-    catch (error) {
-
-        console.log(error);
-
-        alert("Export failed.");
-
-    }
+  }
 
 };
+
+// -----------------------------------------------------
+// Export CSV
+// -----------------------------------------------------
 
 const handleExportCSV = async () => {
 
   if (rows.length === 0) {
-
-    alert("No data available.");
-
+    showSnackbar("No data available.", "warning");
     return;
-
   }
 
   try {
@@ -454,32 +457,29 @@ const handleExportCSV = async () => {
 
     link.download = "cleaned_data.csv";
 
-    document.body.appendChild(link);
-
     link.click();
-
-    link.remove();
 
     window.URL.revokeObjectURL(url);
 
-  } catch (error) {
+  }
 
-    console.error(error);
+  catch {
 
-    alert("CSV export failed.");
+    showSnackbar("CSV Export Failed.", "error");
 
   }
 
 };
 
+// -----------------------------------------------------
+// Export Excel
+// -----------------------------------------------------
+
 const handleExportExcel = async () => {
 
   if (rows.length === 0) {
-
-    alert("No data available.");
-
+    showSnackbar("No data available.", "warning");
     return;
-
   }
 
   try {
@@ -494,191 +494,208 @@ const handleExportExcel = async () => {
 
     link.download = "cleaned_data.xlsx";
 
-    document.body.appendChild(link);
-
     link.click();
-
-    link.remove();
 
     window.URL.revokeObjectURL(url);
 
-  } catch (error) {
+  }
 
-    console.error(error);
+  catch {
 
-    alert("Excel export failed.");
+    showSnackbar("Excel Export Failed.", "error");
 
   }
 
 };
 
-const databaseCount = databases.length;
+// -----------------------------------------------------
+
+const databaseCount = currentDatabase ? 1 : 0;
 
 const collectionCount = collections.length;
 
 const recordCount = rows.length;
 
 const operationCount = operations.length;
+return (
 
-  // -----------------------------
-  // Return UI
-  // -----------------------------
+<>
 
-  return (
+<Navbar />
 
-      <>
-
-    <Navbar />
-
-    <Box sx={{ p: 3 }}>
-
-      <Paper
-        elevation={4}
-        sx={{ p: 4 }}
-      >
-
-        <Typography
-          variant="h4"
-          gutterBottom
-        >
-
-          Universal Data Cleaning Engine
-
-        </Typography>
-        <SaveModeSelector
-
-    saveMode={saveMode}
-
-    setSaveMode={setSaveMode}
-
-    outputCollection={outputCollection}
-
-    setOutputCollection={setOutputCollection}
-
-/>
-        
-        <Button
-  variant="outlined"
-  color="error"
-  onClick={logout}
-  sx={{ float: "right" }}
+<Box
+sx={{
+maxWidth:"1400px",
+mx:"auto",
+p:3
+}}
 >
-  Disconnect
-</Button>
 
-        <DashboardCards
+<Paper
+elevation={4}
+sx={{
+p:4,
+borderRadius:3
+}}
+>
 
-    databaseCount={databaseCount}
+<Typography
+variant="h4"
+align="center"
+fontWeight="bold"
+gutterBottom
+>
 
-    collectionCount={collectionCount}
+Universal Data Cleaning Engine
 
-    recordCount={recordCount}
+</Typography>
 
-    operationCount={operationCount}
+<Divider sx={{mb:3}}/>
 
+<DashboardCards
+databaseCount={databaseCount}
+collectionCount={collectionCount}
+recordCount={recordCount}
+operationCount={operationCount}
 />
 
-        <Divider sx={{ mb: 3 }} />
+<Divider sx={{my:3}}/>
 
-        <StatisticsCards
-  databases={databases.length}
-  collections={collections.length}
-  records={rows.length}
-  operations={operations.length}
+<Paper
+elevation={1}
+sx={{
+p:2,
+mb:3,
+background:"#f8f9fa"
+}}
+>
+
+<Typography variant="subtitle2">
+
+Connected Database
+
+</Typography>
+
+<Typography
+variant="h6"
+color="primary"
+fontWeight="bold"
+>
+
+{currentDatabase}
+
+</Typography>
+
+</Paper>
+
+<CollectionSelector
+collections={collections}
+collection={collection}
+onCollectionChange={handleCollectionChange}
 />
 
-        <Grid
-          container
-          spacing={3}
-        >
+<Box sx={{mt:3}}>
 
-          <Grid size={{ xs: 12, md: 6 }}>
-
-            <DatabaseSelector
-
-              databases={databases}
-
-              database={database}
-
-              onDatabaseChange={handleDatabaseChange}
-
-            />
-
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 6 }}>
-
-            <CollectionSelector
-
-              collections={collections}
-
-              collection={collection}
-
-              onCollectionChange={handleCollectionChange}
-
-            />
-
-          </Grid>
-
-        </Grid>
-
-        <OperationSelector
-
-          operations={operations}
-
-          selectedOperations={selectedOperations}
-
-          handleOperation={handleOperation}
-
-        />
-
-        <DuplicateColumnSelector
-
-          columns={columns}
-
-          selectedColumns={selectedColumns}
-
-          handleColumnSelection={handleColumnSelection}
-
-        />
-
-      <ActionButtons
-  onPreview={previewData}
-  onClean={runCleaning}
-  onExportJSON={handleExportJSON}
-  onExportCSV={handleExportCSV}
-  onExportExcel={handleExportExcel}
+<SaveModeSelector
+saveMode={saveMode}
+setSaveMode={setSaveMode}
+outputCollection={outputCollection}
+setOutputCollection={setOutputCollection}
 />
 
-                <DataTable rows={rows} />
+</Box>
 
-        <Report report={report} />
+<Box sx={{mt:3}}>
 
-    </Paper>
+<OperationSelector
+operations={operations}
+selectedOperations={selectedOperations}
+handleOperation={handleOperation}
+/>
+
+</Box>
+
+<Box sx={{mt:3}}>
+
+<DuplicateColumnSelector
+columns={columns}
+selectedColumns={selectedColumns}
+handleColumnSelection={handleColumnSelection}
+/>
+
+</Box>
+
+<Box sx={{mt:3}}>
+
+<ActionButtons
+onPreview={previewData}
+onClean={runCleaning}
+onExportJSON={handleExportJSON}
+onExportCSV={handleExportCSV}
+onExportExcel={handleExportExcel}
+/>
+
+</Box>
+
+<Box sx={{mt:4}}>
+
+<Typography
+variant="h6"
+gutterBottom
+>
+
+Preview
+
+</Typography>
+
+<DataTable rows={rows}/>
+
+</Box>
+
+<Box sx={{mt:4}}>
+
+<Typography
+variant="h6"
+gutterBottom
+>
+
+Cleaning Report
+
+</Typography>
+
+<Report report={report}/>
+
+</Box>
+
+</Paper>
 
 <Snackbar
-  open={snackbarOpen}
-  autoHideDuration={3000}
-  onClose={() => setSnackbarOpen(false)}
-  anchorOrigin={{
-    vertical: "bottom",
-    horizontal: "right",
-  }}
+open={snackbarOpen}
+autoHideDuration={3000}
+onClose={()=>setSnackbarOpen(false)}
+anchorOrigin={{
+vertical:"bottom",
+horizontal:"right"
+}}
 >
-  <Alert
-    severity={snackbarSeverity}
-    onClose={() => setSnackbarOpen(false)}
-    variant="filled"
-  >
-    {snackbarMessage}
-  </Alert>
+
+<Alert
+severity={snackbarSeverity}
+variant="filled"
+onClose={()=>setSnackbarOpen(false)}
+>
+
+{snackbarMessage}
+
+</Alert>
+
 </Snackbar>
-    </Box>
 
-  </>
-    
+</Box>
 
-  );
+</>
+
+);
 
 }
 

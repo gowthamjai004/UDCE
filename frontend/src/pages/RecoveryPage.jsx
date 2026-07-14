@@ -1,37 +1,39 @@
 import { useEffect, useState } from "react";
 
+import Navbar from "../components/Navbar";
+
 import {
-  Typography,
   Paper,
+  Typography,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Button
+  IconButton,
+  Tooltip,
+  Box,
 } from "@mui/material";
 
-import {
-  getBackups,
-  restoreBackup
-} from "../services/api";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import RestoreIcon from "@mui/icons-material/Restore";
 import DownloadIcon from "@mui/icons-material/Download";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-import IconButton from "@mui/material/IconButton";
-import Tooltip from "@mui/material/Tooltip";
+
+import {
+  getBackups,
+  restoreBackup,
+  deleteBackup,
+} from "../services/api";
 
 function RecoveryPage() {
 
   const [backups, setBackups] = useState([]);
 
   useEffect(() => {
-
     loadBackups();
-
   }, []);
 
   const loadBackups = async () => {
@@ -46,130 +48,339 @@ function RecoveryPage() {
 
     catch (error) {
 
-      console.log(error);
+      console.error(error);
 
     }
 
   };
-  
+
+  const handleRestore = async (id) => {
+
+    const ok = window.confirm(
+
+      "Restore this backup?\n\nCurrent collection will be overwritten."
+
+    );
+
+    if (!ok) return;
+
+    try {
+
+      const result = await restoreBackup(id);
+
+      alert(result.message);
+
+      loadBackups();
+
+    }
+
+    catch (error) {
+
+      console.error(error);
+
+      alert("Restore failed.");
+
+    }
+
+  };
+
+  const handleView = (backup) => {
+
+    alert(
+
+      JSON.stringify(
+
+        backup,
+
+        null,
+
+        2
+
+      )
+
+    );
+
+  };
+
+  const handleDownload = (backup) => {
+
+    const blob = new Blob(
+
+      [
+
+        JSON.stringify(
+
+          backup.data,
+
+          null,
+
+          2
+
+        )
+
+      ],
+
+      {
+
+        type: "application/json"
+
+      }
+
+    );
+
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+
+    a.href = url;
+
+    a.download = backup.backup_name + ".json";
+
+    a.click();
+
+    window.URL.revokeObjectURL(url);
+
+  };
+
+const handleDelete = async (id) => {
+
+  const ok = window.confirm(
+    "Delete this backup permanently?"
+  );
+
+  if (!ok) return;
+
+  try {
+
+    const result = await deleteBackup(id);
+
+    alert(result.message);
+
+    loadBackups();
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    alert("Delete failed.");
+
+  }
+
+};
 
   return (
 
-    <div style={{ padding: 30 }}>
+    <>
 
-      <Typography
-        variant="h4"
-        gutterBottom
-      >
+      <Navbar />
 
-        Recovery Center
+      <Box sx={{ p: 4 }}>
 
-      </Typography>
+        <Typography
 
-      <TableContainer component={Paper}>
+          variant="h4"
 
-        <Table>
+          align="center"
 
-          <TableHead>
-  <TableRow>
-    <TableCell>Backup Name</TableCell>
-    <TableCell>Collection</TableCell>
-    <TableCell>Records</TableCell>
-    <TableCell>Created At</TableCell>
-    <TableCell>Actions</TableCell>
-  </TableRow>
-</TableHead>
+          gutterBottom
 
-          <TableBody>
-
-            {
-
-              backups.map((backup) => (
-
-                <TableRow key={backup._id}>
-
-    <TableCell>
-        {backup.backup_name}
-    </TableCell>
-
-    <TableCell>
-        {backup.original_collection}
-    </TableCell>
-
-    <TableCell>
-        {backup.records}
-    </TableCell>
-
-    <TableCell>
-        {new Date(
-            backup.created_at
-        ).toLocaleString()}
-    </TableCell>
-
-    <TableCell>
-
-        <TableCell>
-
-    <Tooltip title="View Backup">
-
-        <IconButton color="primary">
-
-            <VisibilityIcon />
-
-        </IconButton>
-
-    </Tooltip>
-
-    <Tooltip title="Restore">
-
-        <IconButton
-            color="warning"
-            onClick={() => handleRestore(backup._id)}
         >
 
-            <RestoreIcon />
+          Recovery Center
 
-        </IconButton>
+        </Typography>
 
-    </Tooltip>
+        <TableContainer
 
-    <Tooltip title="Download">
+          component={Paper}
 
-        <IconButton color="success">
+        >
 
-            <DownloadIcon />
+          <Table>
 
-        </IconButton>
+            <TableHead>
 
-    </Tooltip>
+              <TableRow>
 
-    <Tooltip title="Delete">
+                <TableCell>
 
-        <IconButton color="error">
+                  Backup Name
 
-            <DeleteIcon />
+                </TableCell>
 
-        </IconButton>
+                <TableCell>
 
-    </Tooltip>
+                  Collection
 
-</TableCell>
+                </TableCell>
 
-    </TableCell>
+                <TableCell>
 
-</TableRow>
+                  Records
 
-              ))
+                </TableCell>
 
-            }
+                <TableCell>
 
-          </TableBody>
+                  Created At
 
-        </Table>
+                </TableCell>
 
-      </TableContainer>
+                <TableCell align="center">
 
-    </div>
+                  Actions
+
+                </TableCell>
+
+              </TableRow>
+
+            </TableHead>
+
+            <TableBody>
+
+              {
+
+                backups.map((backup) => (
+
+                  <TableRow key={backup._id}>
+
+                    <TableCell>
+
+                      {backup.backup_name || "-"}
+
+                    </TableCell>
+
+                    <TableCell>
+
+                      {backup.original_collection}
+
+                    </TableCell>
+
+                    <TableCell>
+
+                      {backup.records}
+
+                    </TableCell>
+
+                    <TableCell>
+
+                      {
+
+                        new Date(
+
+                          backup.created_at
+
+                        ).toLocaleString()
+
+                      }
+
+                    </TableCell>
+
+                    <TableCell align="center">
+
+                      <Tooltip title="View">
+
+                        <IconButton
+
+                          color="primary"
+
+                          onClick={() =>
+
+                            handleView(backup)
+
+                          }
+
+                        >
+
+                          <VisibilityIcon />
+
+                        </IconButton>
+
+                      </Tooltip>
+
+                      <Tooltip title="Restore">
+
+                        <IconButton
+
+                          color="warning"
+
+                          onClick={() =>
+
+                            handleRestore(
+
+                              backup._id
+
+                            )
+
+                          }
+
+                        >
+
+                          <RestoreIcon />
+
+                        </IconButton>
+
+                      </Tooltip>
+
+                      <Tooltip title="Download">
+
+                        <IconButton
+
+                          color="success"
+
+                          onClick={() =>
+
+                            handleDownload(
+
+                              backup
+
+                            )
+
+                          }
+
+                        >
+
+                          <DownloadIcon />
+
+                        </IconButton>
+
+                      </Tooltip>
+
+                      <Tooltip title="Delete">
+
+                        <IconButton
+
+                          color="error"
+
+                          onClick={() => handleDelete(backup._id)}
+
+                        >
+
+                          <DeleteIcon />
+
+                        </IconButton>
+
+                      </Tooltip>
+
+                    </TableCell>
+
+                  </TableRow>
+
+                ))
+
+              }
+
+            </TableBody>
+
+          </Table>
+
+        </TableContainer>
+
+      </Box>
+
+    </>
 
   );
 

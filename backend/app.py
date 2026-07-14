@@ -21,6 +21,13 @@ from api.recovery import router as recovery_router
 
 app = FastAPI(title="Universal Data Cleaning Engine (UDCE)")
 
+@app.get("/current_database")
+def current_database():
+
+    return {
+        "database": connection_manager.get_database_name()
+    }
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -66,7 +73,7 @@ class ConnectionRequest(BaseModel):
     port: int
     username: str = ""
     password: str = ""
-    database: str = ""
+    database: str
 
 
 class CleanRequest(BaseModel):
@@ -129,6 +136,10 @@ def connect_database(request: ConnectionRequest):
         database.connect()
 
         connection_manager.set_database(database)
+
+        connection_manager.set_database_name(
+    request.database
+)
 
         return {
             "status": "success",
@@ -226,55 +237,85 @@ def clean(request: CleanRequest):
 
     db = connection_manager.get_database()
 
+    # ----------------------------
+    # Read Original Data
+    # ----------------------------
+
     data = db.get_documents(
         request.database,
         request.collection
     )
+
+    # ----------------------------
+    # Clean Data
+    # ----------------------------
 
     cleaned_data, report = engine.execute(
         data,
         request
     )
 
+    # ----------------------------
+    # Save Output
+    # ----------------------------
+
     if request.save_output:
 
-    # ----------------------------
-    # Overwrite Existing Collection
-    # ----------------------------
+        # ----------------------------------
+        # Update Existing Collection
+        # ----------------------------------
 
         if request.save_mode == "overwrite":
 
             recovery.create_backup(
-            request.database,
-            request.collection,
-            data
+                request.database,
+                request.collection,
+                data
             )
 
             db.save_collection(
-            request.database,
-            request.collection,
-            cleaned_data
-    )
-
-    # ----------------------------
-    # Save as New Collection
-    # ----------------------------
-
-    else:
-
-        output_collection = request.output_collection
-
-        if output_collection is None:
-
-            output_collection = (
-                request.collection + "_cleaned"
+                request.database,
+                request.collection,
+                cleaned_data
             )
 
-        db.save_collection(
-            request.database,
-            output_collection,
-            cleaned_data
-        )
+        # ----------------------------------
+        # Save As New Collection
+        # ----------------------------------
+
+        elif request.save_mode == "new":
+
+            output_collection = request.output_collection
+
+            if not output_collection:
+
+                output_collection = (
+                    request.collection + "_cleaned"
+                )
+
+            db.save_collection(
+                request.database,
+                output_collection,
+                cleaned_data
+            )
+
+        # ----------------------------------
+        # Download Only
+        # ----------------------------------
+
+        elif request.save_mode == "download":
+
+            pass
+
+    return {
+
+        "status": "success",
+
+        "cleaned_data": copy.deepcopy(cleaned_data),
+
+        "report": report
+
+    }
         
 
     return {
